@@ -1,0 +1,22 @@
+{
+  "name": "pharmasearch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "express": "^5.2.1",
+    "fuse.js": "^7.3.0",
+    "node-fetch": "^3.3.2",
+    "pdf2json": "^4.0.3",
+    "sax": "^1.6.0",
+    "xml2js": "^0.6.2"
+  }
+}

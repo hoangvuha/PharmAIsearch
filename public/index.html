@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PharmAIsearch — Recherche des excipients et principes actifs</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:18px; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#f0f4f8; color:#1a202c; min-height:100vh; }
+
+header { background:#1a365d; color:white; padding:20px 36px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.header-logo { font-family:'Arial Black','Impact','Franklin Gothic Medium',sans-serif; font-size:2rem; font-weight:900; letter-spacing:3px; line-height:1; display:flex; align-items:baseline; }
+.header-logo .big { font-size:2.5rem; }
+.header-logo .ai { color:#4dd0e1; font-size:2.5rem; letter-spacing:1px; }
+.header-subtitle { font-size:0.88rem; opacity:0.72; margin-top:5px; letter-spacing:0.3px; }
+.lang-switcher { display:flex; gap:8px; align-items:center; }
+.lang-btn { background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.4); color:white; padding:7px 12px; border-radius:8px; cursor:pointer; font-size:0.9rem; font-weight:600; transition:all 0.2s; }
+.lang-btn.active { background:white; color:#1a365d; border-color:white; }
+
+.lang-warning { display:none; border-left:4px solid #d69e2e; border-right:4px solid #d69e2e; padding:14px 36px; font-size:0.95rem; align-items:flex-start; gap:12px; }
+.lang-warning.visible { display:flex; }
+.lang-warning.en { background:#fffbeb; color:#744210; }
+.lang-warning.nl { background:#fff8e1; color:#6d4c00; border-color:#e6ac00; }
+
+.disclaimer { background:#fff0f0; border-left:4px solid #e53e3e; border-right:4px solid #e53e3e; padding:14px 36px; font-size:0.95rem; color:#742a2a; font-weight:500; display:flex; align-items:flex-start; gap:12px; }
+.disclaimer-icon { font-size:1.5rem; flex-shrink:0; margin-top:2px; }
+
+.container { max-width:980px; margin:36px auto; padding:0 22px; }
+
+.search-card { background:white; border-radius:14px; padding:32px 36px; box-shadow:0 2px 16px rgba(0,0,0,0.09); }
+.card-title { font-size:1.35rem; color:#2d3748; font-weight:700; margin-bottom:10px; }
+
+.nouvelle-recherche-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; background:#f6e05e; color:#744210; border:2px solid #d69e2e; border-radius:9px; font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; margin-bottom:22px; }
+.nouvelle-recherche-btn:hover { background:#ecc94b; }
+
+.source-selector { display:flex; gap:14px; margin-bottom:26px; flex-wrap:wrap; }
+.source-btn { padding:12px 20px; border-radius:12px; border:2px solid #cbd5e0; background:white; cursor:pointer; font-size:0.95rem; font-weight:600; color:#4a5568; transition:all 0.2s; text-align:center; min-width:170px; }
+.source-btn .source-title { font-size:1rem; font-weight:700; }
+.source-btn .source-desc { font-size:0.78rem; font-weight:400; color:#718096; margin-top:3px; }
+.source-btn.active { border-color:#1a365d; background:#ebf4ff; color:#1a365d; }
+.source-btn.active .source-desc { color:#2b6cb0; }
+.source-btn.construction { opacity:0.65; }
+
+.section-label { font-size:0.78rem; font-weight:700; color:#2b6cb0; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:9px; }
+
+.input-wrap { position:relative; margin-bottom:13px; }
+.search-input { width:100%; padding:14px 18px; border:2px solid #e2e8f0; border-radius:10px; font-size:1.05rem; transition:border-color 0.2s; box-sizing:border-box; }
+.search-input:focus { outline:none; border-color:#1a365d; }
+
+.rcp-main-btn { width:100%; padding:15px; background:#c05621; color:white; border:2px solid #9c4221; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:all 0.2s; margin-bottom:12px; display:flex; align-items:center; justify-content:center; gap:10px; text-decoration:none; }
+.rcp-main-btn:hover { background:#9c4221; }
+.rcp-main-btn.disabled { opacity:0.45; cursor:not-allowed; }
+
+.cbip-main-btn { width:100%; padding:15px; background:#f6e05e; color:#744210; border:2px solid #d69e2e; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:all 0.2s; margin-bottom:16px; display:flex; align-items:center; justify-content:center; gap:10px; text-decoration:none; }
+.cbip-main-btn:hover { background:#ecc94b; }
+
+.multi-toggle-btn { width:100%; padding:15px; background:#ebf4ff; border:2px solid #2b6cb0; border-radius:10px; font-size:1.05rem; font-weight:700; color:#1a365d; cursor:pointer; transition:all 0.2s; margin-bottom:26px; display:flex; align-items:center; justify-content:center; gap:10px; }
+.multi-toggle-btn:hover, .multi-toggle-btn.active { background:#1a365d; color:white; border-color:#1a365d; }
+
+.multi-section { border:2px solid #2b6cb0; border-radius:14px; padding:24px; margin-bottom:26px; background:#f0f7ff; display:none; }
+.multi-section.visible { display:block; }
+
+.multi-warning { background:#fff0f0; border:2px solid #e53e3e; border-radius:10px; padding:10px 16px; font-size:0.88rem; color:#742a2a; margin-bottom:14px; display:flex; gap:16px; align-items:flex-start; }
+.multi-warning-left { flex-shrink:0; }
+.multi-warning-right { font-style:italic; font-size:0.85rem; color:#742a2a; border-left:1px solid #fed7d7; padding-left:12px; }
+
+.multi-textarea { width:100%; min-height:110px; border:2px solid #bee3f8; border-radius:10px; padding:13px 16px; font-size:1rem; font-family:inherit; resize:vertical; box-sizing:border-box; margin-bottom:14px; background:white; color:#2d3748; }
+.multi-textarea:focus { outline:none; border-color:#2b6cb0; }
+
+.multi-btns { display:flex; gap:10px; margin-bottom:4px; }
+.multi-btn-rapide { flex:1; padding:12px; background:#2b6cb0; color:white; border:none; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; transition:background 0.2s; margin-bottom:5px; width:100%; }
+.multi-btn-rapide:hover { background:#1a365d; }
+.multi-btn-ia { padding:12px; background:#e2e8f0; color:#a0aec0; border:2px solid #cbd5e0; border-radius:10px; font-size:1rem; font-weight:700; cursor:not-allowed; text-align:center; margin-bottom:5px; }
+.multi-btn-desc { font-size:0.78rem; color:#718096; text-align:center; line-height:1.4; }
+
+.excipient-section { border:2px solid #1a365d; border-radius:14px; padding:22px; margin-bottom:26px; background:#f7fbff; }
+.excipient-input { width:100%; padding:14px 18px; border:2px solid #bee3f8; border-radius:10px; font-size:1.05rem; background:white; transition:border-color 0.2s; box-sizing:border-box; margin-bottom:11px; }
+.excipient-input:focus { outline:none; border-color:#1a365d; }
+.excipient-search-btn { width:100%; padding:12px; background:#1a365d; color:white; border:none; border-radius:10px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:background 0.2s; margin-bottom:11px; opacity:0.88; }
+.excipient-search-btn:hover { background:#2a4a7f; opacity:1; }
+.excipient-note { font-size:0.83rem; color:#718096; font-style:italic; }
+
+.filters-label { font-size:0.95rem; color:#a0aec0; margin-bottom:10px; font-weight:600; }
+.filters { display:flex; gap:9px; flex-wrap:wrap; }
+.filter-btn { padding:8px 16px; border-radius:20px; border:2px solid #e2e8f0; background:#f7fafc; cursor:not-allowed; font-size:0.9rem; color:#a0aec0; font-weight:500; opacity:0.7; }
+.filter-btn.active { border-color:#cbd5e0; background:#edf2f7; color:#a0aec0; font-weight:700; }
+.filter-note { font-size:0.78rem; color:#a0aec0; font-style:italic; margin-top:8px; }
+
+.suggestions-box { display:none; position:absolute; top:100%; left:0; right:0; background:white; border:2px solid #1a365d; border-top:none; border-radius:0 0 10px 10px; box-shadow:0 8px 24px rgba(0,0,0,0.12); z-index:1000; max-height:320px; overflow-y:auto; }
+.suggestion-item { padding:11px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f4f8; font-size:1rem; }
+.suggestion-item:last-child { border-bottom:none; }
+.suggestion-item.highlighted, .suggestion-item:hover { background:#ebf4ff; }
+.suggestion-text { color:#1a202c; font-weight:500; }
+.suggestion-type { font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:10px; flex-shrink:0; margin-left:10px; background:#bee3f8; color:#2a69ac; }
+
+.results { margin-top:32px; }
+.results-count { font-size:0.95rem; color:#718096; margin-bottom:14px; }
+
+.result-item { background:white; border-radius:12px; padding:20px 24px; margin-bottom:12px; box-shadow:0 1px 8px rgba(0,0,0,0.07); border-left:5px solid #1a365d; display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+.result-main { flex:1; }
+.result-name { font-weight:700; font-size:1.1rem; color:#1a365d; }
+.result-name-nl { font-size:0.85rem; color:#a0aec0; margin-top:3px; font-style:italic; }
+.result-substance { font-size:0.95rem; color:#718096; margin-top:4px; }
+.result-meta { display:flex; flex-wrap:wrap; gap:7px; margin-top:9px; }
+.result-meta span { font-size:0.85rem; background:#f7fafc; border:1px solid #e2e8f0; border-radius:6px; padding:2px 9px; color:#4a5568; }
+.statut-ok { background:#f0fff4!important; border-color:#9ae6b4!important; color:#276749!important; }
+.statut-ko { background:#fff5f5!important; border-color:#fed7d7!important; color:#c53030!important; }
+
+.result-btns { display:flex; flex-direction:column; gap:7px; flex-shrink:0; }
+.result-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 14px; border-radius:9px; font-size:0.82rem; font-weight:700; cursor:pointer; text-decoration:none; white-space:nowrap; transition:all 0.2s; text-align:center; min-width:72px; }
+.result-btn small { font-size:0.7rem; font-weight:400; margin-top:2px; }
+.btn-cbip { background:#f6e05e; border:2px solid #d69e2e; color:#744210; }
+.btn-cbip:hover { background:#ecc94b; }
+.btn-rcp { background:#e9d8fd; border:2px solid #9f7aea; color:#44337a; }
+.btn-rcp:hover { background:#d6bcfa; }
+
+.multi-result-ok { background:white; border:1px solid #e2e8f0; border-left:5px solid #1a365d; border-radius:10px; padding:14px 18px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.multi-result-nok { background:#fff5f5; border:1px solid #fed7d7; border-left:5px solid #e53e3e; border-radius:10px; padding:14px 18px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.multi-result-ambig { background:#fffbeb; border:1px solid #f6ad55; border-left:5px solid #d69e2e; border-radius:10px; padding:14px 18px; margin-bottom:10px; }
+.multi-matches { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+.multi-match-item { display:flex; justify-content:space-between; align-items:center; background:white; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; gap:10px; }
+
+.btn-excipients-multi { padding:8px 14px; background:#c05621; color:white; border:none; border-radius:8px; font-size:0.85rem; font-weight:700; cursor:pointer; text-decoration:none; white-space:nowrap; flex-shrink:0; transition:background 0.2s; }
+.btn-excipients-multi:hover { background:#9c4221; }
+.btn-recherche-manuelle { padding:8px 14px; background:#e2e8f0; color:#4a5568; border:1px solid #cbd5e0; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all 0.2s; }
+.btn-recherche-manuelle:hover { background:#cbd5e0; }
+
+.passe-badge { font-size:0.72rem; padding:2px 7px; border-radius:8px; font-weight:600; flex-shrink:0; }
+.passe-1 { background:#c6f6d5; color:#276749; }
+.passe-2 { background:#bee3f8; color:#2a69ac; }
+.passe-3 { background:#fef3c7; color:#92400e; }
+.passe-4 { background:#e9d8fd; color:#553c9a; }
+
+.pagination { display:flex; justify-content:center; align-items:center; gap:6px; margin-top:22px; flex-wrap:wrap; }
+.page-btn { padding:8px 13px; border-radius:8px; border:2px solid #cbd5e0; background:white; cursor:pointer; font-size:0.95rem; font-weight:600; color:#4a5568; transition:all 0.2s; }
+.page-btn:hover { border-color:#1a365d; color:#1a365d; }
+.page-btn.active { border-color:#1a365d; background:#1a365d; color:white; }
+.page-btn:disabled { opacity:0.4; cursor:default; }
+
+.status-msg { text-align:center; padding:48px 20px; color:#a0aec0; font-size:1.05rem; }
+.construction-msg { background:#fffbeb; border:2px solid #f6ad55; border-radius:12px; padding:24px 28px; text-align:center; color:#744210; margin-top:18px; }
+.construction-msg h3 { font-size:1.15rem; margin-bottom:10px; }
+.construction-msg p { font-size:0.95rem; line-height:1.7; }
+.construction-msg a { color:#2b6cb0; font-weight:700; }
+.excipient-warning { background:#fffbeb; border:2px solid #d69e2e; border-radius:12px; padding:20px 24px; margin-top:18px; color:#744210; font-size:0.95rem; line-height:1.7; }
+.excipient-warning a { color:#2b6cb0; font-weight:700; text-decoration:none; }
+
+.sources-links { background:white; border-radius:10px; padding:13px 20px; margin-top:12px; box-shadow:0 1px 6px rgba(0,0,0,0.06); display:flex; align-items:center; gap:18px; flex-wrap:wrap; font-size:0.88rem; color:#718096; }
+.sources-links a { color:#2b6cb0; font-weight:600; text-decoration:none; }
+.sources-links a:hover { text-decoration:underline; }
+
+footer { text-align:center; padding:28px 20px; font-size:0.88rem; color:#a0aec0; margin-top:36px; line-height:1.9; }
+footer strong { color:#718096; }
+
+[data-lang] { display:none; }
+.lang-fr [data-lang="fr"] { display:inline; }
+.lang-en [data-lang="en"] { display:inline; }
+.lang-nl [data-lang="nl"] { display:inline; }
+div[data-lang], p[data-lang], span[data-lang] { display:none; }
+.lang-fr div[data-lang="fr"],.lang-fr p[data-lang="fr"],.lang-fr span[data-lang="fr"] { display:block; }
+.lang-en div[data-lang="en"],.lang-en p[data-lang="en"],.lang-en span[data-lang="en"] { display:block; }
+.lang-nl div[data-lang="nl"],.lang-nl p[data-lang="nl"],.lang-nl span[data-lang="nl"] { display:block; }
+
+@media (max-width:640px) {
+  html { font-size:19px; }
+  header { padding:14px 16px; }
+  .header-logo { font-size:1.6rem; }
+  .header-logo .big, .header-logo .ai { font-size:2rem; }
+  .disclaimer,.lang-warning { padding:12px 16px; }
+  .container { padding:0 12px; margin:18px auto; }
+  .search-card { padding:20px 16px; }
+  .result-item { flex-direction:column; gap:12px; }
+  .result-btns { flex-direction:row; width:100%; }
+  .result-btn { flex:1; }
+  .multi-btns { flex-direction:column; }
+  .multi-result-ok,.multi-result-nok { flex-direction:column; gap:10px; }
+  .btn-excipients-multi,.btn-recherche-manuelle { width:100%; text-align:center; }
+  .multi-warning { flex-direction:column; gap:8px; }
+  .multi-warning-right { border-left:none; border-top:1px solid #fed7d7; padding-left:0; padding-top:8px; }
+}
+</style>
+</head>
+<body class="lang-fr">
+
+<header>
+  <div>
+    <div class="header-logo">
+      <span class="big">P</span>HARM<span class="ai">AI</span><span class="big">S</span>EARCH
+    </div>
+    <div class="header-subtitle">
+      <span data-lang="fr">Outil de recherche des excipients et principes actifs des médicaments</span>
+      <span data-lang="en">Search tool for drug excipients and active ingredients</span>
+      <span data-lang="nl">Zoektool voor hulpstoffen en werkzame bestanddelen van geneesmiddelen</span>
+    </div>
+  </div>
+  <div class="lang-switcher">
+    <button class="lang-btn active" onclick="setLang('fr',this)">🇧🇪🇫🇷 FR</button>
+    <button class="lang-btn" onclick="setLang('nl',this)">🇧🇪 NL</button>
+    <button class="lang-btn" onclick="setLang('en',this)">🇬🇧 EN</button>
+  </div>
+</header>
+
+<div class="lang-warning en" id="lang-warning-en">
+  <span style="font-size:1.3rem;flex-shrink:0;">⚠️</span>
+  <div>
+    <strong>Search language notice:</strong>
+    This tool indexes the <strong>French-language</strong> versions of official Belgian drug summaries (RCP AFMPS*).
+    Search terms must be entered in French — English terms are not yet recognised.<br>
+    <em>Use: "lactose" ✓ · "sulfite de sodium" ✓ — not "sodium sulfite" ✗ · "aspirin" ✗</em>
+  </div>
+</div>
+
+<div class="lang-warning nl" id="lang-warning-nl">
+  <span style="font-size:1.3rem;flex-shrink:0;">⚠️</span>
+  <div>
+    <strong>Taalmelding:</strong>
+    De Nederlandstalige databank van het <strong>FAGG</strong> (Federaal Agentschap voor Geneesmiddelen en Gezondheidsproducten) en het <strong>BCFI</strong> (Belgisch Centrum voor Farmacotherapeutische Informatie) is momenteel in implementatie — binnenkort beschikbaar.<br>
+    <em>Gebruik voorlopig Franstalige zoektermen voor nauwkeurige resultaten.</em>
+  </div>
+</div>
+
+<div class="disclaimer">
+  <span class="disclaimer-icon">🚨</span>
+  <div>
+    <span data-lang="fr"><strong>AVERTISSEMENT :</strong> Cet outil est exclusivement destiné aux professionnels de santé. Il constitue une aide à la recherche documentaire et ne se substitue en aucun cas au jugement clinique, à la prescription médicale, ni aux sources officielles (RCP AFMPS*). L'utilisateur reste seul responsable de ses décisions thérapeutiques.</span>
+    <span data-lang="en"><strong>WARNING:</strong> This tool is exclusively intended for healthcare professionals. It is a documentary research aid only and does not replace clinical judgment, medical prescription, or official sources (RCP AFMPS*). The user remains solely responsible for therapeutic decisions.</span>
+    <span data-lang="nl"><strong>WAARSCHUWING:</strong> Dit hulpmiddel is uitsluitend bestemd voor zorgprofessionals. Het vormt enkel een documentaire onderzoekshulp en vervangt in geen geval het klinisch oordeel, het medisch voorschrift of de officiële bronnen (SKP FAGG*). De gebruiker blijft als enige verantwoordelijk voor zijn therapeutische beslissingen.</span>
+  </div>
+</div>
+
+<div class="container">
+<div class="search-card">
+
+  <div class="card-title">
+    <span data-lang="fr">Recherche dans les RCP AFMPS*</span>
+    <span data-lang="en">Search in RCP AFMPS*</span>
+    <span data-lang="nl">Zoeken in SKP FAGG*</span>
+  </div>
+  <button class="nouvelle-recherche-btn" onclick="nouvelleRecherche()">
+    🔄 <span data-lang="fr">Nouvelle recherche</span>
+    <span data-lang="en">New search</span>
+    <span data-lang="nl">Nieuwe zoekopdracht</span>
+  </button>
+
+  <div class="source-selector">
+    <button class="source-btn active" id="src-SAM2" onclick="toggleSource('SAM2')">
+      <div class="source-title">🇧🇪 SAM2</div>
+      <div class="source-desc" data-lang="fr">Répertoire belge · 19 763 spécialités</div>
+      <div class="source-desc" data-lang="en">Belgian database · 19,763 specialties</div>
+      <div class="source-desc" data-lang="nl">Belgische databank · 19.763 specialiteiten</div>
+    </button>
+    <button class="source-btn construction" id="src-BDPM" onclick="toggleSource('BDPM')">
+      <div class="source-title">🇫🇷 BDPM</div>
+      <div class="source-desc" data-lang="fr">🚧 Base en cours de construction</div>
+      <div class="source-desc" data-lang="en">🚧 Database under construction</div>
+      <div class="source-desc" data-lang="nl">🚧 Databank in opbouw</div>
+    </button>
+  </div>
+
+  <div class="section-label">
+    <span data-lang="fr">1 — Nom de la spécialité ou du générique</span>
+    <span data-lang="en">1 — Brand name or generic name</span>
+    <span data-lang="nl">1 — Naam van de specialiteit of het genericum</span>
+  </div>
+  <div class="input-wrap">
+    <input type="text" class="search-input" id="term-specialite"
+      placeholder="Ex : Haldol, Augmentin, Ibuprofen..."
+      autocomplete="off"
+      oninput="onSpecialiteInput()"
+      onkeydown="onSpecialiteKeydown(event)"
+      onblur="hideSuggestions()"
+      onfocus="this.select()">
+    <div class="suggestions-box" id="suggestions-specialite"></div>
+  </div>
+
+  <a id="rcp-zone1-btn" href="#" target="_blank" class="rcp-main-btn disabled" onclick="updateRcpZone1Link(event)">
+    <span data-lang="fr">ACCES DIRECT LISTE EXCIPIENTS (extrait du PDF officiel)</span>
+    <span data-lang="en">DIRECT ACCESS EXCIPIENT LIST (extracted from official PDF)</span>
+    <span data-lang="nl">DIRECTE TOEGANG HULPSTOFFENLIJST (uit officiële PDF)</span>
+    ↗
+  </a>
+
+  <a id="cbip-zone1-btn" href="https://www.cbip.be/fr/keywords?type=trade_family" target="_blank" class="cbip-main-btn" onclick="updateCbipZone1Link()">
+    <span data-lang="fr">Afficher le RCP AFMPS* complet — PDF officiel</span>
+    <span data-lang="en">Show full RCP AFMPS* — official PDF</span>
+    <span data-lang="nl">Volledige SKP FAGG* weergeven — officiële PDF</span>
+    ↗
+  </a>
+
+  <button class="multi-toggle-btn" id="multi-toggle-btn" onclick="toggleMultiSearch()">
+    <span data-lang="fr">Recherche simultanée sur multiples médicaments (liste)</span>
+    <span data-lang="en">Simultaneous search on multiple drugs (list)</span>
+    <span data-lang="nl">Gelijktijdige zoekopdracht op meerdere geneesmiddelen (lijst)</span>
+  </button>
+
+  <div class="multi-section" id="multi-section">
+    <div class="section-label" style="font-size:1.05rem; margin-bottom:14px;">
+      <span data-lang="fr">Recherche simultanée — liste de médicaments</span>
+      <span data-lang="en">Simultaneous search — drug list</span>
+      <span data-lang="nl">Gelijktijdige zoekopdracht — lijst van geneesmiddelen</span>
+    </div>
+    <div class="multi-warning">
+      <div class="multi-warning-left">
+        <span style="font-size:1.3rem;">⚠️</span>
+        <div style="margin-top:6px; font-weight:700;">
+          <span data-lang="fr">Un seul médicament par ligne !</span>
+          <span data-lang="en">One drug per line only!</span>
+          <span data-lang="nl">Slechts één geneesmiddel per regel!</span>
+        </div>
+        <div style="margin-top:4px; font-size:0.88rem;">
+          <span data-lang="fr">Indiquez nom, marque, dosage et forme.</span>
+          <span data-lang="en">Include name, brand, dose and form.</span>
+          <span data-lang="nl">Vermeld naam, merk, dosering en vorm.</span>
+        </div>
+      </div>
+      <div class="multi-warning-right">
+        <div style="font-size:0.82rem; font-weight:600; margin-bottom:4px;">Ex:</div>
+        Haldol 5 mg/ml solution injectable<br>
+        Augmentin 1g comprimé<br>
+        Propofol Sandoz 10 mg/ml
+      </div>
+    </div>
+    <textarea class="multi-textarea" id="multi-textarea"
+      placeholder="Tapez ou collez ici la liste des médicaments&#10;(un médicament par ligne)"></textarea>
+    <div class="multi-btns">
+      <div style="flex:1;">
+        <button class="multi-btn-rapide" onclick="doMultiSearch()">
+          <span data-lang="fr">Recherche rapide (SAM2)</span>
+          <span data-lang="en">Quick search (SAM2)</span>
+          <span data-lang="nl">Snelle zoekopdracht (SAM2)</span>
+        </button>
+        <div class="multi-btn-desc">
+          <span data-lang="fr">Correspondance directe + fallback intelligent dans SAM2 — instantané</span>
+          <span data-lang="en">Direct match + smart fallback in SAM2 — instant</span>
+          <span data-lang="nl">Directe match + slimme fallback in SAM2 — onmiddellijk</span>
+        </div>
+      </div>
+      <div style="flex:1;">
+        <div class="multi-btn-ia">
+          <span data-lang="fr">Recherche IA — plus lente</span>
+          <span data-lang="en">AI search — slower</span>
+          <span data-lang="nl">AI-zoekopdracht — trager</span>
+        </div>
+        <div class="multi-btn-desc" style="color:#e53e3e;font-weight:600;">
+          🚧 <span data-lang="fr">En cours d'implémentation</span>
+          <span data-lang="en">Under implementation</span>
+          <span data-lang="nl">In implementatie</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="excipient-section">
+    <div class="section-label">
+      <span data-lang="fr">2 — Rechercher un excipient ou un principe actif</span>
+      <span data-lang="en">2 — Search an excipient or active ingredient</span>
+      <span data-lang="nl">2 — Zoek een hulpstof of werkzaam bestanddeel</span>
+    </div>
+    <input type="text" class="excipient-input" id="term-excipient"
+      placeholder="Ex : sulfites, lactose, arachide, parabènes..."
+      autocomplete="off" onfocus="this.select()"
+      onkeydown="if(event.key==='Enter') doExcipientSearch()">
+    <button class="excipient-search-btn" onclick="doExcipientSearch()">
+      <span data-lang="fr">Rechercher dans la base (en cours de construction)</span>
+      <span data-lang="en">Search in database (under construction)</span>
+      <span data-lang="nl">Zoeken in databank (in opbouw)</span>
+    </button>
+    <div class="excipient-note">
+      <span data-lang="fr">⚠️ Base excipients en cours de construction. Tapez un nom de spécialité en zone 1 et cliquez sur le bouton orange pour accéder directement à la liste des excipients (RCP AFMPS*).</span>
+      <span data-lang="en">⚠️ Excipient database under construction. Type a specialty name in zone 1 and click the orange button. Search terms must be in French.</span>
+      <span data-lang="nl">⚠️ Hulpstoffendatabank in opbouw. Typ een specialiteitsnaam in zone 1 en klik op de oranje knop. Gebruik voorlopig Franstalige zoektermen.</span>
+    </div>
+  </div>
+
+  <div class="filters-label">
+    <span data-lang="fr">Filtrer par voie d'administration :</span>
+    <span data-lang="en">Filter by route of administration:</span>
+    <span data-lang="nl">Filteren op toedieningsweg:</span>
+  </div>
+  <div class="filters">
+    <button class="filter-btn active"><span data-lang="fr">Toutes</span><span data-lang="en">All</span><span data-lang="nl">Alle</span></button>
+    <button class="filter-btn">Per os (PO)</button>
+    <button class="filter-btn">IV</button>
+    <button class="filter-btn">IM</button>
+    <button class="filter-btn"><span data-lang="fr">Intrathécale (IT)</span><span data-lang="en">Intrathecal (IT)</span><span data-lang="nl">Intrathécaal (IT)</span></button>
+    <button class="filter-btn">SC</button>
+    <button class="filter-btn"><span data-lang="fr">Topique</span><span data-lang="en">Topical</span><span data-lang="nl">Topisch</span></button>
+    <button class="filter-btn"><span data-lang="fr">Inhalation</span><span data-lang="en">Inhalation</span><span data-lang="nl">Inhalatie</span></button>
+  </div>
+  <div class="filter-note">
+    <span data-lang="fr">🚧 Filtre par voie d'administration en cours d'implémentation</span>
+    <span data-lang="en">🚧 Route filter under implementation</span>
+    <span data-lang="nl">🚧 Filter op toedieningsweg in implementatie</span>
+  </div>
+
+</div>
+
+<div class="results" id="results">
+  <div class="status-msg">
+    <span data-lang="fr">Tapez un nom de spécialité en zone 1 et cliquez sur le bouton orange pour accéder aux excipients.</span>
+    <span data-lang="en">Type a specialty name in zone 1 and click the orange button to access excipients.</span>
+    <span data-lang="nl">Typ een specialiteitsnaam in zone 1 en klik op de oranje knop voor hulpstoffen.</span>
+  </div>
+</div>
+
+<div class="sources-links">
+  🔗
+  <span data-lang="fr">Bases officielles :</span><span data-lang="en">Official databases:</span><span data-lang="nl">Officiële databanken:</span>
+  <a href="https://www.cbip.be" target="_blank">CBIP / BCFI</a>
+  <a href="https://www.vas.ehealth.fgov.be/websamcivics/samcivics/" target="_blank">SAM2 (AFMPS / FAGG)</a>
+  <a href="https://base-donnees-publique.medicaments.gouv.fr" target="_blank">BDPM (ANSM)</a>
+  <a href="https://www.afmps.be" target="_blank">AFMPS / FAGG</a>
+</div>
+</div>
+
+<footer>
+  PharmAIsearch — <span data-lang="fr">Données</span><span data-lang="en">Data from</span><span data-lang="nl">Gegevens van</span>
+  SAM2 (AFMPS* / FAGG*) &amp; BDPM (ANSM) — <span data-lang="fr">Sources publiques officielles</span><span data-lang="en">Official public sources</span><span data-lang="nl">Officiële publieke bronnen</span><br>
+  <span data-lang="fr">Cet outil ne constitue pas un conseil médical. Usage réservé aux professionnels de santé.</span>
+  <span data-lang="en">This tool does not constitute medical advice. For healthcare professionals only.</span>
+  <span data-lang="nl">Dit hulpmiddel vormt geen medisch advies. Uitsluitend voor zorgprofessionals.</span><br>
+  <span data-lang="fr">Développé par un professionnel de santé.</span>
+  <span data-lang="en">Developed by a healthcare professional.</span>
+  <span data-lang="nl">Ontwikkeld door een zorgprofessional.</span><br><br>
+  <strong>* AFMPS / FAGG</strong> — <span data-lang="fr">Agence Fédérale des Médicaments et des Produits de Santé</span>
+  <span data-lang="en">Belgian Federal Agency for Medicines and Health Products</span>
+  <span data-lang="nl">Federaal Agentschap voor Geneesmiddelen en Gezondheidsproducten</span>
+</footer>
+
+<script>
+var activeSources = ['SAM2'];
+var allResults    = [];
+var currentPage   = 1;
+var PAGE_SIZE     = 15;
+var suggestTimeout= null;
+var selectedIndex = -1;
+var multiVisible  = false;
+
+window.onload = function() { document.getElementById('term-specialite').focus(); };
+
+function setLang(lang, btn) {
+  document.body.className = 'lang-' + lang;
+  document.querySelectorAll('.lang-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('lang-warning-en').classList.toggle('visible', lang === 'en');
+  document.getElementById('lang-warning-nl').classList.toggle('visible', lang === 'nl');
+}
+
+function toggleSource(source) {
+  if (source === 'BDPM') { showBdpmConstruction(); return; }
+  var btn = document.getElementById('src-' + source);
+  if (activeSources.indexOf(source) !== -1) {
+    if (activeSources.length > 1) { activeSources = activeSources.filter(function(s){ return s !== source; }); btn.classList.remove('active'); }
+  } else { activeSources.push(source); btn.classList.add('active'); }
+}
+
+function showBdpmConstruction() {
+  document.getElementById('results').innerHTML =
+    '<div class="construction-msg"><h3>🚧 <span data-lang="fr">Base BDPM en cours de construction</span><span data-lang="en">BDPM under construction</span><span data-lang="nl">BDPM in opbouw</span></h3>' +
+    '<p data-lang="fr">En attendant : <a href="https://base-donnees-publique.medicaments.gouv.fr" target="_blank">ANSM</a></p>' +
+    '<p data-lang="en">In the meantime: <a href="https://base-donnees-publique.medicaments.gouv.fr" target="_blank">ANSM</a></p>' +
+    '<p data-lang="nl">In de tussentijd: <a href="https://base-donnees-publique.medicaments.gouv.fr" target="_blank">ANSM</a></p></div>';
+}
+
+function toggleMultiSearch() {
+  multiVisible = !multiVisible;
+  document.getElementById('multi-section').classList.toggle('visible', multiVisible);
+  var btn = document.getElementById('multi-toggle-btn');
+  if (multiVisible) { btn.style.background='#1a365d'; btn.style.color='white'; btn.style.borderColor='#1a365d'; setTimeout(function(){ document.getElementById('multi-textarea').focus(); },100); }
+  else { btn.style.background='#ebf4ff'; btn.style.color='#1a365d'; btn.style.borderColor='#2b6cb0'; }
+}
+
+function doMultiSearch() {
+  var raw = (document.getElementById('multi-textarea').value || '').trim();
+  if (!raw) return;
+  var lignes = raw.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+  if (!lignes.length) return;
+  if (lignes.length > 50) { alert('Maximum 50 médicaments par recherche.'); return; }
+  var lang = document.body.className.replace('lang-','');
+  var suspects = lignes.filter(function(l){ return l.length > 120; });
+  if (suspects.length > 0) {
+    if (!confirm(lang === 'en' ? 'Some lines seem very long. One drug per line?' : 'Certaines lignes semblent très longues.\nUn seul médicament par ligne ?')) return;
+  }
+  document.getElementById('results').innerHTML = '<div class="status-msg">Recherche en cours pour ' + lignes.length + ' médicament(s)...</div>';
+  fetch('/api/search-liste', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({lignes:lignes}) })
+    .then(function(r){ return r.json(); })
+    .then(function(data){ renderMultiResults(data.resultats || []); })
+    .catch(function(){ document.getElementById('results').innerHTML = '<div class="status-msg">Erreur de connexion.</div>'; });
+}
+
+var passeLabels  = {1:'Exact',2:'Sans dosage',3:'Nom de base',4:'Mot-clé'};
+var passeClasses = {1:'passe-1',2:'passe-2',3:'passe-3',4:'passe-4'};
+
+function renderMultiResults(resultats) {
+  var div = document.getElementById('results');
+  if (!resultats.length) { div.innerHTML = '<div class="status-msg">Aucun résultat.</div>'; return; }
+  var trouves = resultats.filter(function(r){ return r.trouve; }).length;
+  var nok = resultats.length - trouves;
+  var html = '<div class="results-count">' + resultats.length + ' médicament(s) — <span style="color:#276749;">'+trouves+' trouvé(s)</span>' +
+    (nok > 0 ? ' · <span style="color:#c53030;">'+nok+' non trouvé(s)</span>' : '') + '</div>';
+  resultats.forEach(function(r) {
+    if (!r.trouve) {
+      html += '<div class="multi-result-nok"><div style="flex:1;"><div style="font-size:1rem;font-weight:700;color:#c53030;">Non trouvé : ' + escHtml(r.query) + '</div>' +
+        '<div style="font-size:0.85rem;color:#e53e3e;margin-top:3px;">' + escHtml(r.message||'Non trouvé dans SAM2') + '</div></div>' +
+        '<button class="btn-recherche-manuelle" onclick="rechercheManuelle(\'' + r.query.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">Recherche manuelle</button></div>';
+    } else if (r.matches.length === 1) {
+      var m = r.matches[0];
+      var sc = m.statut==='AUTHORIZED'?'statut-ok':'statut-ko';
+      var sl = m.statut==='AUTHORIZED'?'Autorisé':(m.statut||'?');
+      var rcpHref = m.spc_url ? '/api/rcp?amp_id='+encodeURIComponent(m.id) : null;
+      html += '<div class="multi-result-ok"><div style="flex:1;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        '<span style="font-size:1rem;font-weight:700;color:#1a365d;">' + escHtml(m.name) + '</span>' +
+        '<span class="passe-badge '+(passeClasses[r.passe]||'passe-1')+'">'+(passeLabels[r.passe]||'')+'</span></div>' +
+        '<div style="font-size:0.82rem;color:#718096;margin-top:4px;">' +
+        (m.forme?''+escHtml(m.forme)+' · ':'') + (m.titulaire?escHtml(m.titulaire)+' · ':'') +
+        '<span class="'+sc+'" style="padding:2px 7px;border-radius:5px;border:1px solid;">'+sl+'</span> · SAM2</div>' +
+        '<div style="font-size:0.78rem;color:#a0aec0;margin-top:3px;font-style:italic;">Recherche : «'+escHtml(r.query)+'»</div></div>' +
+        (rcpHref ? '<a href="'+rcpHref+'" target="_blank" class="btn-excipients-multi">Excipients</a>' :
+          '<a href="'+m.cbip_url+'" target="_blank" class="btn-excipients-multi" style="background:#2b6cb0;">CBIP</a>') + '</div>';
+    } else {
+      html += '<div class="multi-result-ambig"><div style="font-size:0.9rem;font-weight:700;color:#744210;margin-bottom:8px;">«'+escHtml(r.query)+'» — '+r.matches.length+' correspondances :</div><div class="multi-matches">';
+      r.matches.forEach(function(m) {
+        var sl = m.statut==='AUTHORIZED'?'Autorisé':'?';
+        var rcpHref = m.spc_url ? '/api/rcp?amp_id='+encodeURIComponent(m.id) : null;
+        html += '<div class="multi-match-item"><div style="flex:1;"><div style="font-size:0.9rem;font-weight:600;color:#1a365d;">'+escHtml(m.name)+'</div>' +
+          '<div style="font-size:0.78rem;color:#718096;">'+(m.forme?escHtml(m.forme)+' · ':'')+(m.titulaire?escHtml(m.titulaire):'')+'</div></div>' +
+          (rcpHref ? '<a href="'+rcpHref+'" target="_blank" class="btn-excipients-multi" style="font-size:0.8rem;padding:6px 10px;">Excipients</a>' :
+            '<a href="'+m.cbip_url+'" target="_blank" class="btn-excipients-multi" style="background:#2b6cb0;font-size:0.8rem;padding:6px 10px;">CBIP</a>') + '</div>';
+      });
+      html += '</div></div>';
+    }
+  });
+  div.innerHTML = html;
+  window.scrollTo({top:document.getElementById('results').offsetTop-20,behavior:'smooth'});
+}
+
+function rechercheManuelle(terme) {
+  if (multiVisible) toggleMultiSearch();
+  document.getElementById('term-specialite').value = terme;
+  updateBoutonJaune(terme);
+  window.scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('term-specialite').focus();
+}
+
+function updateBoutonJaune(nom) {
+  var btnJ = document.getElementById('cbip-zone1-btn');
+  var btnO = document.getElementById('rcp-zone1-btn');
+  if (!nom || nom.length < 2) {
+    btnJ.href = 'https://www.cbip.be/fr/keywords?type=trade_family';
+    btnO.href = '#'; btnO.classList.add('disabled'); return;
+  }
+  btnJ.href = buildCbipUrl(nom);
+  fetch('/api/spc?nom=' + encodeURIComponent(nom))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.amp_id) { btnO.href='/api/rcp?amp_id='+encodeURIComponent(data.amp_id); btnO.classList.remove('disabled'); }
+      else if (data.spc_url) { btnO.href='/api/rcp?nom='+encodeURIComponent(nom); btnO.classList.remove('disabled'); }
+      else { btnO.href='#'; btnO.classList.add('disabled'); }
+      if (data.spc_url) btnJ.href = data.spc_url;
+    })
+    .catch(function(){ btnO.href='#'; btnO.classList.add('disabled'); });
+}
+
+function buildCbipUrl(val) {
+  if (!val) return 'https://www.cbip.be/fr/keywords?type=trade_family';
+  var base = val.replace(/\s+\d[\d,.]*\s*(mg|ml|mcg|g|%|ui|iu|mg\/ml).*/i,'').replace(/\s+\d+\s*$/,'').trim();
+  return 'https://www.cbip.be/fr/keywords?q='+encodeURIComponent(base)+'&type=trade_family';
+}
+
+function updateCbipZone1Link() { updateBoutonJaune((document.getElementById('term-specialite').value||'').trim()); }
+
+function updateRcpZone1Link(event) {
+  var btn = document.getElementById('rcp-zone1-btn');
+  if (!btn.href || btn.href.endsWith('#')) {
+    event.preventDefault();
+    var lang = document.body.className.replace('lang-','');
+    alert(lang==='en'?'Please type a specialty name first.':lang==='nl'?'Typ eerst een specialiteitsnaam.':'Veuillez d\'abord taper un nom de spécialité.');
+  }
+}
+
+function onSpecialiteInput() {
+  var val = document.getElementById('term-specialite').value.trim();
+  clearTimeout(suggestTimeout);
+  suggestTimeout = setTimeout(function(){
+    updateBoutonJaune(val);
+    if (val.length >= 2) fetchSuggestions(val);
+    else hideSuggestions();
+  }, 300);
+}
+
+function fetchSuggestions(query) {
+  fetch('/api/suggest?q='+encodeURIComponent(query)+'&mode=specialite')
+    .then(function(r){ return r.json(); })
+    .then(function(data){ showSuggestions(data.suggestions||[]); })
+    .catch(hideSuggestions);
+}
+
+function showSuggestions(suggestions) {
+  var box = document.getElementById('suggestions-specialite');
+  if (!suggestions.length) { box.innerHTML=''; box.style.display='none'; return; }
+  selectedIndex = -1;
+  box.innerHTML = suggestions.map(function(s,i){
+    return '<div class="suggestion-item" onmousedown="selectSuggestion(\''+s.texte.replace(/'/g,"\\'")+'\''+')" onmouseover="highlightSuggestion('+i+')">'+
+      '<span class="suggestion-text">'+s.texte+'</span><span class="suggestion-type">Spécialité</span></div>';
+  }).join('');
+  box.style.display = 'block';
+}
+
+function hideSuggestions() {
+  setTimeout(function(){ var box=document.getElementById('suggestions-specialite'); if(box){box.innerHTML='';box.style.display='none';} },150);
+}
+
+function highlightSuggestion(index) {
+  selectedIndex = index;
+  document.querySelectorAll('#suggestions-specialite .suggestion-item').forEach(function(el,i){ el.classList.toggle('highlighted',i===index); });
+}
+
+function selectSuggestion(texte) {
+  document.getElementById('term-specialite').value = texte;
+  updateBoutonJaune(texte);
+  hideSuggestions();
+}
+
+function onSpecialiteKeydown(event) {
+  var box = document.getElementById('suggestions-specialite');
+  var items = box.querySelectorAll('.suggestion-item');
+  if (!items.length) { if (event.key==='Enter') updateCbipZone1Link(); return; }
+  if (event.key==='ArrowDown') { event.preventDefault(); selectedIndex=Math.min(selectedIndex+1,items.length-1); highlightSuggestion(selectedIndex); }
+  else if (event.key==='ArrowUp') { event.preventDefault(); selectedIndex=Math.max(selectedIndex-1,0); highlightSuggestion(selectedIndex); }
+  else if (event.key==='Enter') { event.preventDefault(); if(selectedIndex>=0&&items[selectedIndex]) selectSuggestion(items[selectedIndex].querySelector('.suggestion-text').textContent); }
+  else if (event.key==='Escape') hideSuggestions();
+}
+
+function doExcipientSearch() {
+  var val = (document.getElementById('term-excipient').value||'').trim();
+  var url = val ? 'https://www.cbip.be/fr/keywords?q='+encodeURIComponent(val)+'&type=substance' : 'https://www.cbip.be/fr/keywords?type=substance';
+  var lang = document.body.className.replace('lang-','');
+  document.getElementById('results').innerHTML = lang==='en'
+    ? '<div class="excipient-warning"><strong>⚠️ Excipient database under construction</strong><br><br>To search <strong>'+escHtml(val)+'</strong>:<br><br><a href="'+url+'" target="_blank">Search "'+escHtml(val)+'" on CBIP</a></div>'
+    : '<div class="excipient-warning"><strong>⚠️ Base excipients en cours de construction</strong><br><br>Pour rechercher <strong>'+escHtml(val)+'</strong> :<br><br><a href="'+url+'" target="_blank">Rechercher "'+escHtml(val)+'" sur le CBIP</a></div>';
+}
+
+function nouvelleRecherche() {
+  document.getElementById('term-specialite').value = '';
+  document.getElementById('term-excipient').value = '';
+  document.getElementById('multi-textarea').value = '';
+  document.getElementById('cbip-zone1-btn').href = 'https://www.cbip.be/fr/keywords?type=trade_family';
+  var btnO = document.getElementById('rcp-zone1-btn');
+  btnO.href = '#'; btnO.classList.add('disabled');
+  if (multiVisible) toggleMultiSearch();
+  allResults=[]; currentPage=1;
+  document.getElementById('results').innerHTML = '<div class="status-msg">Tapez un nom de spécialité en zone 1 et cliquez sur le bouton orange.</div>';
+  setTimeout(function(){ document.getElementById('term-specialite').focus(); },100);
+}
+
+function renderPage() {
+  var div=document.getElementById('results'), total=allResults.length;
+  if (!total) { div.innerHTML='<div class="status-msg">Aucun résultat.</div>'; return; }
+  var pages=Math.ceil(total/PAGE_SIZE), start=(currentPage-1)*PAGE_SIZE, page=allResults.slice(start,start+PAGE_SIZE);
+  var html='<div class="results-count">'+total+' résultat(s) — page '+currentPage+'/'+pages+'</div>';
+  page.forEach(function(r){
+    var sc=r.statut==='AUTHORIZED'?'statut-ok':'statut-ko', sl=r.statut==='AUTHORIZED'?'Autorisé':(r.statut||'?');
+    html+='<div class="result-item"><div class="result-main">'+
+      '<div class="result-name">'+escHtml(r.name)+'</div>'+
+      (r.name_nl&&r.name_nl!==r.name?'<div class="result-name-nl">'+escHtml(r.name_nl)+'</div>':'')+
+      '<div class="result-substance">'+escHtml(r.forme||'')+(r.source?' — '+r.source:'')+'</div>'+
+      '<div class="result-meta">'+
+      (r.voies?'<span>'+escHtml(r.voies)+'</span>':'')+
+      (r.titulaire?'<span>'+escHtml(r.titulaire)+'</span>':'')+
+      '<span class="'+sc+'">'+sl+'</span>'+
+      '<span style="background:#ebf4ff;border-color:#bee3f8;color:#2a69ac;">SAM2</span>'+
+      '</div></div>'+
+      '<div class="result-btns">'+
+      '<a href="'+r.cbip_url+'" target="_blank" class="result-btn btn-cbip">CBIP<br><small>Répertoire</small></a>'+
+      (r.spc_url?'<a href="/api/rcp?amp_id='+encodeURIComponent(r.id)+'" target="_blank" class="result-btn btn-rcp">RCP<br><small>Excipients</small></a>':'')+
+      '</div></div>';
+  });
+  if (pages>1) {
+    html+='<div class="pagination"><button class="page-btn" onclick="goPage('+(currentPage-1)+')" '+(currentPage===1?'disabled':'')+'>◀</button>';
+    for(var p=1;p<=pages;p++){
+      if(p===1||p===pages||Math.abs(p-currentPage)<=2) html+='<button class="page-btn '+(p===currentPage?'active':'')+'" onclick="goPage('+p+')">' +p+'</button>';
+      else if(Math.abs(p-currentPage)===3) html+='<span style="padding:0 4px;color:#a0aec0">…</span>';
+    }
+    html+='<button class="page-btn" onclick="goPage('+(currentPage+1)+')" '+(currentPage===pages?'disabled':'')+'>▶</button></div>';
+  }
+  div.innerHTML=html;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function goPage(p) { var pages=Math.ceil(allResults.length/PAGE_SIZE); if(p<1||p>pages)return; currentPage=p; renderPage(); }
+function escHtml(str) { return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
