@@ -3,7 +3,8 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const db = new Database(path.join(__dirname, '../data/pharmasearch.db'), { readonly: true });
+const dbPath = process.env.DB_PATH || path.join(__dirname, '../data/pharmasearch.db');
+const db = new Database(dbPath, { readonly: true });
 
 function norm(str) {
   return (str || '').toLowerCase()
@@ -292,4 +293,3 @@ function rechercherListe(lignes) {
 }
 
 module.exports = { rechercher, suggerer, getSpcUrl, rechercherListe };
-

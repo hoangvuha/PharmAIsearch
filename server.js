@@ -42,9 +42,10 @@ const Database = require('better-sqlite3');
 
 const { rechercher, suggerer, getSpcUrl, rechercherListe } = require('./scripts/search');
 
-const app  = express();
-const PORT = process.env.PORT || 3000;
-const db   = new Database(path.join(__dirname, 'data/pharmasearch.db'), { readonly: true });
+const app    = express();
+const PORT   = process.env.PORT || 3000;
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'data/pharmasearch.db');
+const db     = new Database(dbPath, { readonly: true });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
