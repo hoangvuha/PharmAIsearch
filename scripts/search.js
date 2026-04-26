@@ -123,23 +123,27 @@ function rechercher({ terms, operators, filter, sources }) {
 }
 
 // ── AUTOCOMPLÉTION ────────────────────────────────────────────────────────
-// mode = 'specialite' → noms uniquement (pour la case 1)
 function suggerer(query, mode) {
   try {
     const q = norm(query);
     const resultats = [];
     const dejavu = new Set();
 
-    // Noms de spécialités SAM2
+    // Noms de spécialités SAM2 avec amp_id et spc_url
     const rows = getDb().prepare(`
-      SELECT DISTINCT nom_fr FROM sam2_specialites
+      SELECT nom_fr, amp_id, spc_url_fr FROM sam2_specialites
       WHERE LOWER(nom_fr) LIKE ?
       ORDER BY nom_fr LIMIT 10
     `).all(`${q}%`);
 
     for (const r of rows) {
       if (!dejavu.has(r.nom_fr)) {
-        resultats.push({ texte: r.nom_fr, type: 'specialite' });
+        resultats.push({
+          texte:   r.nom_fr,
+          type:    'specialite',
+          amp_id:  r.amp_id || null,
+          spc_url: r.spc_url_fr || ''
+        });
         dejavu.add(r.nom_fr);
       }
     }
@@ -147,7 +151,7 @@ function suggerer(query, mode) {
     // Si moins de 5 résultats, chercher aussi "contient"
     if (resultats.length < 5) {
       const rows2 = getDb().prepare(`
-        SELECT DISTINCT nom_fr FROM sam2_specialites
+        SELECT nom_fr, amp_id, spc_url_fr FROM sam2_specialites
         WHERE LOWER(nom_fr) LIKE ?
           AND LOWER(nom_fr) NOT LIKE ?
         ORDER BY nom_fr LIMIT 5
@@ -155,7 +159,12 @@ function suggerer(query, mode) {
 
       for (const r of rows2) {
         if (!dejavu.has(r.nom_fr)) {
-          resultats.push({ texte: r.nom_fr, type: 'specialite' });
+          resultats.push({
+            texte:   r.nom_fr,
+            type:    'specialite',
+            amp_id:  r.amp_id || null,
+            spc_url: r.spc_url_fr || ''
+          });
           dejavu.add(r.nom_fr);
         }
       }
@@ -171,8 +180,8 @@ function suggerer(query, mode) {
 
 function getSpcUrl(nom) {
   try {
-    const t = '%' + norm(nom) + '%';
-    const row = getDb().prepare(`
+    const query = (sql, param) => getDb().prepare(sql).get(param);
+    const sql = `
       SELECT amp_id, spc_url_fr FROM sam2_specialites
       WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
         nom_fr,'é','e'),'è','e'),'ê','e'),'à','a'),'ô','o'),'î','i'))
@@ -180,8 +189,27 @@ function getSpcUrl(nom) {
       AND spc_url_fr != ''
       ORDER BY LENGTH(nom_fr) ASC
       LIMIT 1
-    `).get(t);
-    return row ? { amp_id: row.amp_id, spc_url: row.spc_url_fr } : { amp_id: null, spc_url: '' };
+    `;
+
+    // Passe 1 : recherche exacte avec le nom complet
+    let row = query(sql, '%' + norm(nom) + '%');
+    if (row) return { amp_id: row.amp_id, spc_url: row.spc_url_fr };
+
+    // Passe 2 : supprimer dosage et forme
+    const nomNettoye = nettoyerLigne(nom);
+    if (nomNettoye.length >= 3) {
+      row = query(sql, '%' + nomNettoye + '%');
+      if (row) return { amp_id: row.amp_id, spc_url: row.spc_url_fr };
+    }
+
+    // Passe 3 : premier mot significatif (≥4 chars)
+    const mots = norm(nom).split(/\s+/).filter(m => m.length >= 4);
+    if (mots.length > 0) {
+      row = query(sql, mots[0] + '%');
+      if (row) return { amp_id: row.amp_id, spc_url: row.spc_url_fr };
+    }
+
+    return { amp_id: null, spc_url: '' };
   } catch (err) {
     return { amp_id: null, spc_url: '' };
   }

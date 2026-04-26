@@ -614,8 +614,10 @@ function showSuggestions(suggestions) {
   var box = document.getElementById('suggestions-specialite');
   if (!suggestions.length) { box.innerHTML=''; box.style.display='none'; return; }
   selectedIndex = -1;
+  // Stocker les suggestions complètes pour accès lors de la sélection
+  window._suggestions = suggestions;
   box.innerHTML = suggestions.map(function(s,i){
-    return '<div class="suggestion-item" onmousedown="selectSuggestion(\''+s.texte.replace(/'/g,"\\'")+'\''+')" onmouseover="highlightSuggestion('+i+')">'+
+    return '<div class="suggestion-item" onmousedown="selectSuggestionIdx('+i+')" onmouseover="highlightSuggestion('+i+')">'+
       '<span class="suggestion-text">'+s.texte+'</span><span class="suggestion-type">Spécialité</span></div>';
   }).join('');
   box.style.display = 'block';
@@ -636,13 +638,38 @@ function selectSuggestion(texte) {
   hideSuggestions();
 }
 
+function selectSuggestionIdx(idx) {
+  var s = window._suggestions && window._suggestions[idx];
+  if (!s) return;
+  document.getElementById('term-specialite').value = s.texte;
+  hideSuggestions();
+
+  var btnJ = document.getElementById('cbip-zone1-btn');
+  var btnO = document.getElementById('rcp-zone1-btn');
+
+  // Utiliser directement amp_id et spc_url de la suggestion — pas besoin de refetch
+  if (s.amp_id) {
+    btnO.href = '/api/rcp?amp_id=' + encodeURIComponent(s.amp_id);
+    btnO.classList.remove('disabled');
+  } else {
+    btnO.href = '#';
+    btnO.classList.add('disabled');
+  }
+
+  if (s.spc_url) {
+    btnJ.href = s.spc_url;
+  } else {
+    btnJ.href = buildCbipUrl(s.texte);
+  }
+}
+
 function onSpecialiteKeydown(event) {
   var box = document.getElementById('suggestions-specialite');
   var items = box.querySelectorAll('.suggestion-item');
   if (!items.length) { if (event.key==='Enter') updateCbipZone1Link(); return; }
   if (event.key==='ArrowDown') { event.preventDefault(); selectedIndex=Math.min(selectedIndex+1,items.length-1); highlightSuggestion(selectedIndex); }
   else if (event.key==='ArrowUp') { event.preventDefault(); selectedIndex=Math.max(selectedIndex-1,0); highlightSuggestion(selectedIndex); }
-  else if (event.key==='Enter') { event.preventDefault(); if(selectedIndex>=0&&items[selectedIndex]) selectSuggestion(items[selectedIndex].querySelector('.suggestion-text').textContent); }
+  else if (event.key==='Enter') { event.preventDefault(); if(selectedIndex>=0&&items[selectedIndex]) selectSuggestionIdx(selectedIndex); }
   else if (event.key==='Escape') hideSuggestions();
 }
 
