@@ -260,8 +260,9 @@ function pageRcp(spec, amp_id, section61, texteComplet) {
   header { background:#1a365d; color:white; padding:16px 28px;
            display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .header-logo { font-family:'Arial Black',Impact,sans-serif; font-size:1.4rem;
-                 font-weight:900; letter-spacing:2px; }
+                 font-weight:900; letter-spacing:2px; display:flex; align-items:baseline; }
   .header-logo .big { font-size:1.8rem; }
+  .header-logo .ai { color:#4dd0e1; font-size:1.8rem; letter-spacing:1px; }
   .back-btn { background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.4);
               color:white; padding:7px 14px; border-radius:8px; cursor:pointer;
               font-size:0.9rem; font-weight:600; text-decoration:none; }
@@ -315,8 +316,8 @@ function pageRcp(spec, amp_id, section61, texteComplet) {
 </head>
 <body>
 <header>
-  <div class="header-logo"><span class="big">P</span>HARMA<span class="big">S</span>EARCH</div>
-  <a href="javascript:history.back()" class="back-btn">← Retour</a>
+  <div class="header-logo"><span class="big">P</span>HARM<span class="ai">AI</span><span class="big">S</span>EARCH</div>
+  <a href="https://pharmaisearch.com" class="back-btn">← Accueil</a>
 </header>
 
 <div class="container">
@@ -346,13 +347,13 @@ function pageRcp(spec, amp_id, section61, texteComplet) {
     <div class="disclaimer">
       🚨 <strong>Information extraite automatiquement du RCP officiel AFMPS.</strong><br>
       Vérifiez toujours les données sur le <a href="${escHtml(spec.spc_url_fr)}" target="_blank" style="color:#2b6cb0;font-weight:700;">PDF officiel AFMPS</a> avant toute décision clinique.
-      Cet outil ne se substitue pas au jugement professionnel.
+      PharmAIsearch ne se substitue pas au jugement professionnel.
     </div>
   </div>
 </div>
 
 <footer>
-  PharmaSearch — Données SAM2 (AFMPS) — Sources publiques officielles<br>
+  PharmAIsearch — Données SAM2 (AFMPS) — Sources publiques officielles<br>
   Cet outil ne constitue pas un conseil médical. Usage réservé aux professionnels de santé.<br>
   <strong>* AFMPS</strong> — Agence Fédérale des Médicaments et des Produits de Santé
 </footer>
@@ -369,8 +370,9 @@ function pageErreur(amp_id, nom, message, spcUrl) {
 <style>
   body{font-family:-apple-system,sans-serif;background:#f0f4f8;color:#1a202c;font-size:16px;}
   header{background:#1a365d;color:white;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;}
-  .header-logo{font-family:'Arial Black',Impact,sans-serif;font-size:1.4rem;font-weight:900;letter-spacing:2px;}
+  .header-logo{font-family:'Arial Black',Impact,sans-serif;font-size:1.4rem;font-weight:900;letter-spacing:2px;display:flex;align-items:baseline;}
   .big{font-size:1.8rem;}
+  .ai{color:#4dd0e1;font-size:1.8rem;letter-spacing:1px;}
   .back-btn{background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.4);color:white;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:600;text-decoration:none;}
   .container{max-width:860px;margin:40px auto;padding:0 20px;}
   .err{background:white;border-radius:14px;padding:32px;box-shadow:0 2px 16px rgba(0,0,0,0.09);}
@@ -380,8 +382,8 @@ function pageErreur(amp_id, nom, message, spcUrl) {
 </style></head>
 <body>
 <header>
-  <div class="header-logo"><span class="big">P</span>HARMA<span class="big">S</span>EARCH</div>
-  <a href="javascript:history.back()" class="back-btn">← Retour</a>
+  <div class="header-logo"><span class="big">P</span>HARM<span class="ai">AI</span><span class="big">S</span>EARCH</div>
+  <a href="https://pharmaisearch.com" class="back-btn">← Accueil</a>
 </header>
 <div class="container"><div class="err">
   <h2>⚠️ Extraction impossible</h2>
