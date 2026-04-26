@@ -129,42 +129,34 @@ function suggerer(query, mode) {
     const resultats = [];
     const dejavu = new Set();
 
-    // Noms de spécialités SAM2 avec amp_id et spc_url
-    const rows = getDb().prepare(`
+    // Priorité 1 : noms qui commencent par le terme ET ont un lien RCP
+    const rowsAvecRcp = getDb().prepare(`
       SELECT nom_fr, amp_id, spc_url_fr FROM sam2_specialites
       WHERE LOWER(nom_fr) LIKE ?
+        AND spc_url_fr != ''
       ORDER BY nom_fr LIMIT 10
     `).all(`${q}%`);
 
-    for (const r of rows) {
+    for (const r of rowsAvecRcp) {
       if (!dejavu.has(r.nom_fr)) {
-        resultats.push({
-          texte:   r.nom_fr,
-          type:    'specialite',
-          amp_id:  r.amp_id || null,
-          spc_url: r.spc_url_fr || ''
-        });
+        resultats.push({ texte: r.nom_fr, type: 'specialite', amp_id: r.amp_id, spc_url: r.spc_url_fr });
         dejavu.add(r.nom_fr);
       }
     }
 
-    // Si moins de 5 résultats, chercher aussi "contient"
+    // Priorité 3 : contient le terme (avec RCP)
     if (resultats.length < 5) {
-      const rows2 = getDb().prepare(`
+      const rowsContient = getDb().prepare(`
         SELECT nom_fr, amp_id, spc_url_fr FROM sam2_specialites
         WHERE LOWER(nom_fr) LIKE ?
           AND LOWER(nom_fr) NOT LIKE ?
+          AND spc_url_fr != ''
         ORDER BY nom_fr LIMIT 5
       `).all(`%${q}%`, `${q}%`);
 
-      for (const r of rows2) {
+      for (const r of rowsContient) {
         if (!dejavu.has(r.nom_fr)) {
-          resultats.push({
-            texte:   r.nom_fr,
-            type:    'specialite',
-            amp_id:  r.amp_id || null,
-            spc_url: r.spc_url_fr || ''
-          });
+          resultats.push({ texte: r.nom_fr, type: 'specialite', amp_id: r.amp_id, spc_url: r.spc_url_fr });
           dejavu.add(r.nom_fr);
         }
       }
