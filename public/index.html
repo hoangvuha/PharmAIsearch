@@ -550,16 +550,30 @@ function updateBoutonJaune(nom) {
     btnJ.href = 'https://www.cbip.be/fr/keywords?type=trade_family';
     btnO.href = '#'; btnO.classList.add('disabled'); return;
   }
-  btnJ.href = buildCbipUrl(nom);
+  // Mettre un indicateur visuel pendant le chargement
+  btnJ.href = '#';
   fetch('/api/spc?nom=' + encodeURIComponent(nom))
     .then(function(r){ return r.json(); })
     .then(function(data) {
-      if (data.amp_id) { btnO.href='/api/rcp?amp_id='+encodeURIComponent(data.amp_id); btnO.classList.remove('disabled'); }
-      else if (data.spc_url) { btnO.href='/api/rcp?nom='+encodeURIComponent(nom); btnO.classList.remove('disabled'); }
-      else { btnO.href='#'; btnO.classList.add('disabled'); }
-      if (data.spc_url) btnJ.href = data.spc_url;
+      // Bouton orange → page intermédiaire excipients
+      if (data.amp_id) {
+        btnO.href = '/api/rcp?amp_id=' + encodeURIComponent(data.amp_id);
+        btnO.classList.remove('disabled');
+      } else {
+        btnO.href = '#';
+        btnO.classList.add('disabled');
+      }
+      // Bouton jaune → PDF direct AFMPS si disponible, sinon CBIP
+      if (data.spc_url) {
+        btnJ.href = data.spc_url;
+      } else {
+        btnJ.href = buildCbipUrl(nom);
+      }
     })
-    .catch(function(){ btnO.href='#'; btnO.classList.add('disabled'); });
+    .catch(function(){
+      btnO.href = '#'; btnO.classList.add('disabled');
+      btnJ.href = buildCbipUrl(nom);
+    });
 }
 
 function buildCbipUrl(val) {
