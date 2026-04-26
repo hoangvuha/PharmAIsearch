@@ -263,11 +263,6 @@ div[data-lang], p[data-lang], span[data-lang] { display:none; }
     <span data-lang="en">1 — Brand name or generic name</span>
     <span data-lang="nl">1 — Naam van de specialiteit of het genericum</span>
   </div>
-  <div style="font-size:0.75rem;color:#c53030;margin-bottom:8px;line-height:1.4;">
-    <span data-lang="fr">⚠️ Certaines spécialités ou génériques peuvent ne pas apparaître dans les suggestions car ils ne possèdent pas de RCP AFMPS* disponible dans notre base.</span>
-    <span data-lang="en">⚠️ Some specialties or generics may not appear in suggestions as they have no RCP AFMPS* available in our database.</span>
-    <span data-lang="nl">⚠️ Sommige specialiteiten of generica verschijnen mogelijk niet in de suggesties omdat ze geen beschikbare SKP FAGG* hebben in onze databank.</span>
-  </div>
   <div class="input-wrap">
     <input type="text" class="search-input" id="term-specialite"
       placeholder="Ex : Haldol, Augmentin, Ibuprofen..."
@@ -283,13 +278,6 @@ div[data-lang], p[data-lang], span[data-lang] { display:none; }
     <span data-lang="fr">ACCES DIRECT LISTE EXCIPIENTS (extrait du PDF officiel)</span>
     <span data-lang="en">DIRECT ACCESS EXCIPIENT LIST (extracted from official PDF)</span>
     <span data-lang="nl">DIRECTE TOEGANG HULPSTOFFENLIJST (uit officiële PDF)</span>
-    ↗
-  </a>
-
-  <a id="cbip-zone1-btn" href="https://www.cbip.be/fr/keywords?type=trade_family" target="_blank" class="cbip-main-btn" onclick="updateCbipZone1Link()">
-    <span data-lang="fr">Afficher le RCP AFMPS* complet — PDF officiel</span>
-    <span data-lang="en">Show full RCP AFMPS* — official PDF</span>
-    <span data-lang="nl">Volledige SKP FAGG* weergeven — officiële PDF</span>
     ↗
   </a>
 
@@ -549,18 +537,13 @@ function rechercheManuelle(terme) {
 }
 
 function updateBoutonJaune(nom) {
-  var btnJ = document.getElementById('cbip-zone1-btn');
   var btnO = document.getElementById('rcp-zone1-btn');
   if (!nom || nom.length < 2) {
-    btnJ.href = 'https://www.cbip.be/fr/keywords?type=trade_family';
     btnO.href = '#'; btnO.classList.add('disabled'); return;
   }
-  // Mettre un indicateur visuel pendant le chargement
-  btnJ.href = '#';
   fetch('/api/spc?nom=' + encodeURIComponent(nom))
     .then(function(r){ return r.json(); })
     .then(function(data) {
-      // Bouton orange → page intermédiaire excipients
       if (data.amp_id) {
         btnO.href = '/api/rcp?amp_id=' + encodeURIComponent(data.amp_id);
         btnO.classList.remove('disabled');
@@ -568,17 +551,8 @@ function updateBoutonJaune(nom) {
         btnO.href = '#';
         btnO.classList.add('disabled');
       }
-      // Bouton jaune → PDF direct AFMPS si disponible, sinon CBIP
-      if (data.spc_url) {
-        btnJ.href = data.spc_url;
-      } else {
-        btnJ.href = buildCbipUrl(nom);
-      }
     })
-    .catch(function(){
-      btnO.href = '#'; btnO.classList.add('disabled');
-      btnJ.href = buildCbipUrl(nom);
-    });
+    .catch(function(){ btnO.href='#'; btnO.classList.add('disabled'); });
 }
 
 function buildCbipUrl(val) {
@@ -649,22 +623,13 @@ function selectSuggestionIdx(idx) {
   document.getElementById('term-specialite').value = s.texte;
   hideSuggestions();
 
-  var btnJ = document.getElementById('cbip-zone1-btn');
   var btnO = document.getElementById('rcp-zone1-btn');
-
-  // Utiliser directement amp_id et spc_url de la suggestion — pas besoin de refetch
   if (s.amp_id) {
     btnO.href = '/api/rcp?amp_id=' + encodeURIComponent(s.amp_id);
     btnO.classList.remove('disabled');
   } else {
     btnO.href = '#';
     btnO.classList.add('disabled');
-  }
-
-  if (s.spc_url) {
-    btnJ.href = s.spc_url;
-  } else {
-    btnJ.href = buildCbipUrl(s.texte);
   }
 }
 
