@@ -2,9 +2,39 @@
 
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs   = require('fs');
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, '../data/pharmasearch.db');
-const db = new Database(dbPath, { readonly: true });
+const DB_VOLUME = '/data/pharmasearch.db';
+const DB_LOCAL  = path.join(__dirname, '../data/pharmasearch.db');
+
+function getDbPath() {
+  if (process.env.RAILWAY_ENVIRONMENT) {
+    // Sur Railway : copier vers le volume si nécessaire
+    if (!fs.existsSync(DB_VOLUME)) {
+      console.log('Copie DB vers volume Railway...');
+      try {
+        fs.mkdirSync('/data', { recursive: true });
+        fs.copyFileSync(DB_LOCAL, DB_VOLUME);
+        console.log('DB copiée ✅');
+      } catch(e) {
+        console.error('Erreur copie DB:', e.message);
+        return DB_LOCAL;
+      }
+    }
+    return DB_VOLUME;
+  }
+  return process.env.DB_PATH || DB_LOCAL;
+}
+
+let _db = null;
+function getDb() {
+  if (!_db) {
+    const p = getDbPath();
+    console.log('Ouverture DB:', p);
+    _db = new Database(p, { readonly: true });
+  }
+  return _db;
+}
 
 function norm(str) {
   return (str || '').toLowerCase()
@@ -26,7 +56,7 @@ function rechercher({ terms, operators, filter, sources }) {
     if (!sources || sources.includes('SAM2')) {
       const t = `%${norm(term0)}%`;
 
-      const rows = db.prepare(`
+      const rows = getDb().prepare(`
         SELECT
           s.amp_id,
           s.nom_fr,
@@ -101,7 +131,7 @@ function suggerer(query, mode) {
     const dejavu = new Set();
 
     // Noms de spécialités SAM2
-    const rows = db.prepare(`
+    const rows = getDb().prepare(`
       SELECT DISTINCT nom_fr FROM sam2_specialites
       WHERE LOWER(nom_fr) LIKE ?
       ORDER BY nom_fr LIMIT 10
@@ -116,7 +146,7 @@ function suggerer(query, mode) {
 
     // Si moins de 5 résultats, chercher aussi "contient"
     if (resultats.length < 5) {
-      const rows2 = db.prepare(`
+      const rows2 = getDb().prepare(`
         SELECT DISTINCT nom_fr FROM sam2_specialites
         WHERE LOWER(nom_fr) LIKE ?
           AND LOWER(nom_fr) NOT LIKE ?
@@ -142,7 +172,7 @@ function suggerer(query, mode) {
 function getSpcUrl(nom) {
   try {
     const t = '%' + norm(nom) + '%';
-    const row = db.prepare(`
+    const row = getDb().prepare(`
       SELECT amp_id, spc_url_fr FROM sam2_specialites
       WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
         nom_fr,'é','e'),'è','e'),'ê','e'),'à','a'),'ô','o'),'î','i'))
@@ -185,7 +215,7 @@ function rechercherUneMolecule(ligne) {
   const ligneNorm = norm(ligne.trim());
 
   // Passe 1 : correspondance exacte (LIKE %terme%)
-  let rows = db.prepare(`
+  let rows = getDb().prepare(`
     SELECT amp_id, nom_fr, nom_nl, forme_fr, voies_fr, statut, titulaire, spc_url_fr
     FROM sam2_specialites
     WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
@@ -199,7 +229,7 @@ function rechercherUneMolecule(ligne) {
   // Passe 2 : supprimer dosage + forme
   const ligneNettoye = nettoyerLigne(ligne);
   if (ligneNettoye.length >= 3) {
-    rows = db.prepare(`
+    rows = getDb().prepare(`
       SELECT amp_id, nom_fr, nom_nl, forme_fr, voies_fr, statut, titulaire, spc_url_fr
       FROM sam2_specialites
       WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
@@ -213,7 +243,7 @@ function rechercherUneMolecule(ligne) {
   // Passe 3 : premier mot significatif (≥4 chars)
   const mots = ligneNettoye.split(' ').filter(m => m.length >= 4);
   if (mots.length > 0) {
-    rows = db.prepare(`
+    rows = getDb().prepare(`
       SELECT amp_id, nom_fr, nom_nl, forme_fr, voies_fr, statut, titulaire, spc_url_fr
       FROM sam2_specialites
       WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
@@ -226,7 +256,7 @@ function rechercherUneMolecule(ligne) {
 
   // Passe 4 : chaque mot séparément avec LIKE %mot%
   for (const mot of mots) {
-    rows = db.prepare(`
+    rows = getDb().prepare(`
       SELECT amp_id, nom_fr, nom_nl, forme_fr, voies_fr, statut, titulaire, spc_url_fr
       FROM sam2_specialites
       WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
@@ -293,3 +323,4 @@ function rechercherListe(lignes) {
 }
 
 module.exports = { rechercher, suggerer, getSpcUrl, rechercherListe };
+

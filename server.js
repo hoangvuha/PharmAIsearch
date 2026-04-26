@@ -39,13 +39,22 @@ async function parsePdf(buffer) {
   });
 }
 const Database = require('better-sqlite3');
+const fs       = require('fs');
 
 const { rechercher, suggerer, getSpcUrl, rechercherListe } = require('./scripts/search');
 
-const app    = express();
-const PORT   = process.env.PORT || 3000;
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'data/pharmasearch.db');
-const db     = new Database(dbPath, { readonly: true });
+const app  = express();
+const PORT = process.env.PORT || 3000;
+
+// DB pour les requêtes directes dans server.js (page RCP)
+function getServerDb() {
+  const DB_VOLUME = '/data/pharmasearch.db';
+  const DB_LOCAL  = path.join(__dirname, 'data/pharmasearch.db');
+  const dbPath = process.env.RAILWAY_ENVIRONMENT
+    ? (fs.existsSync(DB_VOLUME) ? DB_VOLUME : DB_LOCAL)
+    : (process.env.DB_PATH || DB_LOCAL);
+  return new Database(dbPath, { readonly: true });
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -175,7 +184,7 @@ app.get('/api/rcp', async (req, res) => {
   if (!amp_id) return res.status(400).send('amp_id ou nom requis');
 
   // Récupérer les infos de la spécialité
-  const spec = db.prepare(
+  const spec = getServerDb().prepare(
     'SELECT nom_fr, forme_fr, titulaire, spc_url_fr FROM sam2_specialites WHERE amp_id = ?'
   ).get(amp_id);
 
@@ -402,7 +411,7 @@ app.get('/api/multi-search', (req, res) => {
     const qNorm = normStr(q);
 
     // Essai 1 : correspondance exacte sur nom_fr
-    let row = db.prepare(`
+    let row = getServerDb().prepare(`
       SELECT amp_id, nom_fr, forme_fr, voies_fr, statut, titulaire, spc_url_fr
       FROM sam2_specialites
       WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
@@ -414,7 +423,7 @@ app.get('/api/multi-search', (req, res) => {
 
     // Essai 2 : correspondance partielle — le nom de la DB commence par q
     if (!row) {
-      row = db.prepare(`
+      row = getServerDb().prepare(`
         SELECT amp_id, nom_fr, forme_fr, voies_fr, statut, titulaire, spc_url_fr
         FROM sam2_specialites
         WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
@@ -428,7 +437,7 @@ app.get('/api/multi-search', (req, res) => {
 
     // Essai 3 : q contient le nom (recherche dans les deux sens)
     if (!row) {
-      row = db.prepare(`
+      row = getServerDb().prepare(`
         SELECT amp_id, nom_fr, forme_fr, voies_fr, statut, titulaire, spc_url_fr
         FROM sam2_specialites
         WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
@@ -450,7 +459,7 @@ app.get('/api/multi-search', (req, res) => {
 // ── Debug : voir le texte brut du PDF ────────────────────────────────────
 app.get('/api/rcp-debug', async (req, res) => {
   const amp_id = (req.query.amp_id || '').trim();
-  const spec = db.prepare('SELECT spc_url_fr FROM sam2_specialites WHERE amp_id = ?').get(amp_id);
+  const spec = getServerDb().prepare('SELECT spc_url_fr FROM sam2_specialites WHERE amp_id = ?').get(amp_id);
   if (!spec || !spec.spc_url_fr) return res.send('Pas de lien');
   try {
     const buf = await fetchPdf(spec.spc_url_fr);
