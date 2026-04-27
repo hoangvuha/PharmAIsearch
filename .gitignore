@@ -1,5 +1,4 @@
 node_modules/ 
-data/pharmasearch.db 
 data/sam2/ 
 data/*.db-shm 
 data/*.db-wal 
