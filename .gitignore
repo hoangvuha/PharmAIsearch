@@ -3,3 +3,4 @@ data/sam2/
 data/*.db-shm 
 data/*.db-wal 
 data/*.txt 
+server.js.backup

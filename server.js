@@ -363,37 +363,116 @@ function pageRcp(spec, amp_id, section61, texteComplet) {
 
 // ── Page d'erreur ────────────────────────────────────────────────────────
 function pageErreur(amp_id, nom, message, spcUrl) {
+  // Récupérer le statut depuis la DB pour personnaliser le message
+  let statut = '';
+  try {
+    const row = getServerDb().prepare(
+      'SELECT statut FROM sam2_specialites WHERE amp_id = ?'
+    ).get(amp_id);
+    statut = row ? (row.statut || '') : '';
+  } catch (e) {
+    statut = '';
+  }
+
+  // Récupérer la date de mise à jour de la base SAM2
+  // (basée sur la date de modification du fichier .db sur le disque)
+  let dateMaj = '';
+  try {
+    const fsLocal = require('fs');
+    const pathLocal = require('path');
+    const DB_VOLUME = '/data/pharmasearch.db';
+    const DB_LOCAL  = pathLocal.join(__dirname, 'data/pharmasearch.db');
+    const dbPath = process.env.RAILWAY_ENVIRONMENT
+      ? (fsLocal.existsSync(DB_VOLUME) ? DB_VOLUME : DB_LOCAL)
+      : (process.env.DB_PATH || DB_LOCAL);
+    const stat = fsLocal.statSync(dbPath);
+    const d = stat.mtime;
+    const jj = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const aaaa = d.getFullYear();
+    dateMaj = `${jj}/${mm}/${aaaa}`;
+  } catch (e) {
+    dateMaj = '';
+  }
+
+  // Construire le message personnalisé selon le statut
+  let messageStatut = '';
+  switch (statut) {
+    case 'REVOKED':
+      messageStatut = 'Ce médicament a été <strong>retiré du marché belge</strong> (autorisation révoquée par l\'AFMPS).';
+      break;
+    case 'SUSPENDED':
+      messageStatut = 'L\'autorisation de mise sur le marché de ce médicament est <strong>suspendue</strong>.';
+      break;
+    case 'WITHDRAWN':
+      messageStatut = 'Ce médicament a fait l\'objet d\'un <strong>arrêt de commercialisation</strong>.';
+      break;
+    case 'AUTHORIZED':
+      messageStatut = 'La notice n\'est pas disponible directement dans la base SAM2 pour ce médicament.';
+      break;
+    case '':
+      messageStatut = escHtml(message || 'Information non disponible.');
+      break;
+    default:
+      messageStatut = `Statut du médicament : <code>${escHtml(statut)}</code>.`;
+  }
+
+  const dateNote = dateMaj
+    ? `<span class="date-note">(d'après notre base SAM2 mise à jour le ${dateMaj})</span>`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>RCP — Erreur</title>
+<title>RCP — ${escHtml(nom || amp_id)}</title>
 <style>
-  body{font-family:-apple-system,sans-serif;background:#f0f4f8;color:#1a202c;font-size:16px;}
-  header{background:#1a365d;color:white;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;}
+  body{font-family:-apple-system,sans-serif;background:#f0f4f8;color:#1a202c;font-size:16px;margin:0;}
+  header{background:#1a365d;color:white;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
   .header-logo{font-family:'Arial Black',Impact,sans-serif;font-size:1.4rem;font-weight:900;letter-spacing:2px;display:flex;align-items:baseline;}
   .big{font-size:1.8rem;}
   .ai{color:#4dd0e1;font-size:1.8rem;letter-spacing:1px;}
   .back-btn{background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.4);color:white;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:600;text-decoration:none;}
+  .back-btn:hover{background:rgba(255,255,255,0.25);}
   .container{max-width:860px;margin:40px auto;padding:0 20px;}
   .err{background:white;border-radius:14px;padding:32px;box-shadow:0 2px 16px rgba(0,0,0,0.09);}
-  .err h2{color:#c53030;margin-bottom:12px;}
-  .err p{color:#4a5568;line-height:1.7;margin-bottom:16px;}
-  .pdf-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:#e53e3e;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;}
+  .err h2{color:#c53030;margin:0 0 12px;font-size:1.3rem;}
+  .drug-name{font-size:1.4rem;font-weight:700;color:#1a365d;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;}
+  .err p{color:#4a5568;line-height:1.7;margin:0 0 14px;}
+  .date-note{display:block;margin-top:8px;font-size:0.82rem;color:#a0aec0;font-style:italic;}
+  .sources-intro{margin-top:22px;color:#2d3748;font-weight:600;}
+  .btn-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;}
+  .src-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 22px;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity 0.2s;flex:1;justify-content:center;min-width:200px;}
+  .src-btn:hover{opacity:0.88;}
+  .src-afmps{background:#1a365d;}
+  .src-cbip{background:#2b6cb0;}
+  .pdf-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:#e53e3e;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;margin-top:14px;}
+  .pdf-btn:hover{background:#c53030;}
+  footer{text-align:center;padding:24px;font-size:0.82rem;color:#a0aec0;line-height:1.7;}
 </style></head>
 <body>
 <header>
   <div class="header-logo"><span class="big">P</span>HARM<span class="ai">AI</span><span class="big">S</span>EARCH</div>
   <a href="https://pharmaisearch.com" class="back-btn">← Accueil</a>
 </header>
-<div class="container"><div class="err">
-  <h2>⚠️ Extraction impossible</h2>
-  <p><strong>${escHtml(nom || amp_id)}</strong></p>
-  <p>${escHtml(message)}</p>
-  ${spcUrl ? `<a href="${escHtml(spcUrl)}" target="_blank" class="pdf-btn">📥 Ouvrir le PDF officiel AFMPS directement</a>` : ''}
-</div></div>
+<div class="container">
+  <div class="err">
+    <h2>⚠️ Notice non disponible</h2>
+    <div class="drug-name">${escHtml(nom || amp_id)}</div>
+    <p>${messageStatut} ${dateNote}</p>
+    ${spcUrl ? `<p><a href="${escHtml(spcUrl)}" target="_blank" rel="noopener" class="pdf-btn">📥 Ouvrir le PDF officiel AFMPS directement</a></p>` : ''}
+    <div class="sources-intro">Pour vérifier le statut le plus récent et consulter la notice, référez-vous aux sources officielles :</div>
+    <div class="btn-row">
+      <a href="https://www.afmps.be/fr" target="_blank" rel="noopener" class="src-btn src-afmps">🔍 Recherche AFMPS</a>
+      <a href="https://www.cbip.be/fr" target="_blank" rel="noopener" class="src-btn src-cbip">📋 Consulter le CBIP</a>
+    </div>
+  </div>
+</div>
+<footer>
+  PharmAIsearch — Données SAM2 (AFMPS) — Sources publiques officielles<br>
+  Cet outil ne constitue pas un conseil médical. Usage réservé aux professionnels de santé.
+</footer>
 </body></html>`;
 }
-
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
